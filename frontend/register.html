@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - SkyWing</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Arial', sans-serif;
+    }
+
+    body {
+      background-color: #0a0a0a;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Register Container */
+    .register-container {
+      background: #1a1a1a;
+      padding: 2.5rem;
+      border-radius: 12px;
+      border: 1px solid #ff6b00;
+      box-shadow: 0 0 20px rgba(255, 107, 0, 0.3);
+      width: 90%;
+      max-width: 400px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .register-container:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0 30px rgba(255, 107, 0, 0.5);
+    }
+
+    h2 {
+      color: #ff6b00;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 2rem;
+      text-shadow: 0 0 10px rgba(255, 107, 0, 0.7);
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #ff6b00;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.8rem;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: #333;
+      color: #fff;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    input:focus {
+      border-color: #ff6b00;
+      box-shadow: 0 0 10px rgba(255, 107, 0, 0.5);
+      outline: none;
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #ff6b00;
+    }
+
+    .password-strength {
+      margin-top: 0.5rem;
+    }
+
+    .strength-bar {
+      height: 4px;
+      background: #333;
+      border-radius: 2px;
+      margin-bottom: 0.25rem;
+      transition: width 0.3s ease, background-color 0.3s ease;
+    }
+
+    .strength-text {
+      font-size: 0.875rem;
+      color: #ff6b00;
+    }
+
+    button {
+      width: 100%;
+      padding: 1rem;
+      background-color: #ff6b00;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s, transform 0.3s;
+      position: relative;
+    }
+
+    button:hover {
+      background-color: #ff5500;
+      transform: translateY(-2px);
+    }
+
+    #loadingSpinner {
+      margin-left: 10px;
+      display: none;
+    }
+
+    .error-message {
+      color: #ff4444;
+      margin: 1rem 0;
+      display: none;
+      text-align: center;
+    }
+
+    .success-message {
+      color: #00ff88;
+      margin: 1rem 0;
+      display: none;
+      text-align: center;
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+
+    .login-link a {
+      color: #ff6b00;
+      text-decoration: none;
+      font-weight: bold;
+      transition: opacity 0.3s;
+    }
+
+    .login-link a:hover {
+      opacity: 0.8;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 480px) {
+      .register-container {
+        padding: 1.5rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+
+      input {
+        padding: 0.7rem;
+      }
+
+      button {
+        padding: 0.8rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="register-container">
+    <h2>Create Account</h2>
+    <div class="error-message" id="errorMsg"></div>
+    <div class="success-message" id="successMsg"></div>
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" required aria-label="Username">
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" required aria-label="Email">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="password" required aria-label="Password">
+          <i class="fas fa-eye password-toggle" id="password-toggle" aria-label="Toggle password visibility"></i>
+        </div>
+        <div class="password-strength">
+          <div class="strength-bar" id="strengthBar"></div>
+          <div class="strength-text" id="strengthText"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input type="password" id="confirmPassword" required aria-label="Confirm Password">
+      </div>
+      <button type="submit" id="submitButton">
+        <span id="buttonText">Register</span>
+        <i class="fas fa-spinner fa-spin" id="loadingSpinner"></i>
+      </button>
+    </form>
+    <div class="login-link">
+      <p>Already have an account? <a href="login.html">Login</a></p>
+    </div>
+  </div>
+
+  <script>
+    // Password Strength Meter
+    const passwordInput = document.getElementById('password')
+    const strengthBar = document.getElementById('strengthBar')
+    const strengthText = document.getElementById('strengthText')
+
+    passwordInput.addEventListener('input', () => {
+      const strength = calculatePasswordStrength(passwordInput.value)
+      strengthBar.style.width = `${strength}%`
+      strengthBar.style.backgroundColor = strength < 20 ? '#ff4444' : strength < 40 ? '#ffaa00' : strength < 60 ? '#ffdd00' : strength < 80 ? '#aaff00' : '#00cc66'
+      strengthText.textContent = strength < 20 ? 'Very Weak' : strength < 40 ? 'Weak' : strength < 60 ? 'Moderate' : strength < 80 ? 'Strong' : 'Very Strong'
+    })
+
+    const calculatePasswordStrength = (password) => {
+      let strength = 0
+      if (password.length >= 8) strength += 20
+      if (/[A-Z]/.test(password)) strength += 20
+      if (/[0-9]/.test(password)) strength += 20
+      if (/[^A-Za-z0-9]/.test(password)) strength += 20
+      if (password.length >= 12) strength += 20
+      return strength
+    }
+
+    // Password Toggle
+    const togglePasswordVisibility = (inputId, toggleId) => {
+      const passwordInput = document.getElementById(inputId)
+      const toggleIcon = document.getElementById(toggleId)
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text'
+        toggleIcon.classList.remove('fa-eye')
+        toggleIcon.classList.add('fa-eye-slash')
+        toggleIcon.setAttribute('aria-label', 'Hide password')
+      } else {
+        passwordInput.type = 'password'
+        toggleIcon.classList.remove('fa-eye-slash')
+        toggleIcon.classList.add('fa-eye')
+        toggleIcon.setAttribute('aria-label', 'Show password')
+      }
+    }
+
+    document.getElementById('password-toggle').addEventListener('click', () => {
+      togglePasswordVisibility('password', 'password-toggle')
+    })
+  </script>
+
+  <script src="js/auth.js"></script>
+</body>
+
+</html>

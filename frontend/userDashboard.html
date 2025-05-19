@@ -1,0 +1,3547 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flight Booking System</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root {
+      --primary-bg: #121212;
+      --secondary-bg: #1e1e1e;
+      --accent-color: #ff7b25;
+      --accent-hover: #ff9447;
+      --text-primary: #ffffff;
+      --text-secondary: #cccccc;
+      --glass-bg: rgba(30, 30, 30, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --success-color: #4caf50;
+      --error-color: #f44336;
+      --warning-color: #ff9800;
+      --info-color: #2196f3;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--primary-bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Background pattern */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(255, 123, 37, 0.1) 0%, transparent 20%),
+        radial-gradient(circle at 80% 70%, rgba(255, 123, 37, 0.1) 0%, transparent 20%);
+      z-index: -1;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Header */
+    header {
+      background-color: var(--secondary-bg);
+      padding: 15px 0;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: var(--accent-color);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo i {
+      font-size: 2rem;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .user-info span {
+      font-weight: 500;
+    }
+
+    .logout-btn {
+      background-color: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--accent-color);
+      padding: 5px 15px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .logout-btn:hover {
+      background-color: var(--accent-color);
+      color: var(--primary-bg);
+    }
+
+    /* Main layout */
+    .main-layout {
+      display: flex;
+      min-height: calc(100vh - 70px);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 250px;
+      background-color: var(--secondary-bg);
+      padding: 20px 0;
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      transition: transform 0.3s;
+    }
+
+    .nav-menu {
+      list-style: none;
+    }
+
+    .nav-item {
+      margin-bottom: 5px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.3s;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-link:hover {
+      color: var(--text-primary);
+      background-color: rgba(255, 123, 37, 0.1);
+    }
+
+    .nav-link.active {
+      color: var(--accent-color);
+      background-color: rgba(255, 123, 37, 0.1);
+      border-left: 3px solid var(--accent-color);
+    }
+
+    .nav-link i {
+      font-size: 1.2rem;
+      width: 24px;
+      text-align: center;
+    }
+
+    /* Main content */
+    .main-content {
+      flex: 1;
+      padding: 30px;
+      background-color: var(--primary-bg);
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .page-title {
+      font-size: 1.8rem;
+      color: var(--text-primary);
+    }
+
+    .btn {
+      background-color: var(--accent-color);
+      color: var(--primary-bg);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      background-color: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(255, 123, 37, 0.3);
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--accent-color);
+      border: 1px solid var(--accent-color);
+    }
+
+    .btn-secondary:hover {
+      background-color: rgba(255, 123, 37, 0.1);
+      color: var(--accent-color);
+    }
+
+    .btn-danger {
+      background-color: var(--error-color);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: #e53935;
+    }
+
+    /* Glass effect components */
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      padding: 20px;
+      transition: all 0.3s;
+    }
+
+    .glass:hover {
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      transform: translateY(-2px);
+    }
+
+    /* Sections */
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Dashboard */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, rgba(255, 123, 37, 0.1), rgba(255, 123, 37, 0.05));
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .stat-card h3 {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .stat-card p {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--accent-color);
+    }
+
+    .flights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .flight-card {
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .flight-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .flight-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .flight-header h4 {
+      font-size: 1.2rem;
+    }
+
+    .flight-price {
+      color: var(--accent-color);
+      font-weight: bold;
+    }
+
+    .flight-times {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+
+    .flight-times span {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    /* Flight Search */
+    .flight-search-form {
+      margin-bottom: 30px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 15px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      color: var(--text-primary);
+      transition: all 0.3s;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px rgba(255, 123, 37, 0.2);
+    }
+
+    select.form-control {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 20px;
+    }
+
+    /* Flight Details */
+    .flight-detail-card {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .flight-detail-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .flight-detail-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .detail-item {
+      margin-bottom: 15px;
+    }
+
+    .detail-item label {
+      display: block;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      font-size: 0.9rem;
+    }
+
+    .detail-item p {
+      font-size: 1.1rem;
+    }
+
+    /* Seat Selection */
+    .seat-map-container {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .seat-map {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin: 0 auto;
+      max-width: 600px;
+    }
+
+    .seat {
+      position: relative;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(76, 175, 80, 0.2);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: bold;
+      color: var(--text-primary);
+      border: 2px solid transparent;
+    }
+
+    .seat.available {
+      background-color: rgba(33, 150, 243, 0.2);
+    }
+
+    .seat.booked {
+      background-color: rgba(244, 67, 54, 0.2);
+      cursor: not-allowed;
+    }
+
+    .seat.selected {
+      background-color: rgba(255, 123, 37, 0.3);
+      border-color: var(--accent-color);
+      transform: scale(1.1);
+    }
+
+    .seat .booked-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(0, 0, 0, 0.5);
+      border-radius: 6px;
+    }
+
+    .seat-summary {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .seat-summary h4 {
+      margin-bottom: 15px;
+    }
+
+    /* Seat Colors */
+    .seat-economy {
+      background-color: #4CAF50;
+      /* Green for economy */
+      color: white;
+    }
+
+    .seat-business {
+      background-color: #2196F3;
+      /* Blue for business */
+      color: white;
+    }
+
+    .seat-first {
+      background-color: #f44336;
+      /* Red for first class */
+      color: white;
+    }
+
+    .seat.selected {
+      background-color: #FFC107;
+      /* Yellow for selected seats */
+      color: black;
+      box-shadow: 0 0 10px #FFC107;
+    }
+
+    .seat.booked {
+      background-color: #9E9E9E;
+      /* Gray for booked seats */
+      cursor: not-allowed;
+    }
+
+    /* Seat Colors */
+    .seat {
+      /* Common seat styles */
+      width: 40px;
+      height: 40px;
+      margin: 5px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+
+    .seat-economy {
+      background-color: #4CAF50;
+      /* Green */
+      color: white;
+    }
+
+    .seat-business {
+      background-color: #2196F3;
+      /* Blue */
+      color: white;
+    }
+
+    .seat-first {
+      background-color: #f44336;
+      /* Red */
+      color: white;
+    }
+
+    .seat.selected {
+      background-color: #FFC107;
+      /* Yellow */
+      color: black;
+      box-shadow: 0 0 10px #FFC107;
+    }
+
+    /* Payment Methods */
+    .payment-method {
+      display: inline-block;
+      margin: 0 10px 10px 0;
+      cursor: pointer;
+    }
+
+    .payment-method input {
+      display: none;
+    }
+
+    .payment-method .method-content {
+      padding: 10px 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .payment-method input:checked+.method-content {
+      border-color: #4CAF50;
+      background-color: rgba(76, 175, 80, 0.1);
+    }
+
+    /* Discount Options */
+    .discount-options {
+      margin-top: 15px;
+    }
+
+    .ticket-summary {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .ticket-summary span:first-child {
+      font-weight: bold;
+    }
+
+    .total {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 2px solid #ddd;
+      font-size: 1.1em;
+      font-weight: bold;
+    }
+
+    .discount-options {
+      margin-top: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .discount-option {
+      padding: 10px;
+      margin-bottom: 5px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .discount-option:hover {
+      background-color: #e0e0e0;
+    }
+
+    .seat-summary ul {
+      list-style: none;
+      margin-bottom: 15px;
+    }
+
+    .seat-summary li {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .total-price {
+      font-size: 1.2rem;
+      text-align: right;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Passenger Forms */
+    .passenger-forms-container {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .passenger-form {
+      margin-bottom: 20px;
+    }
+
+    /* Payment */
+    .payment-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 768px) {
+      .payment-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .payment-summary h3 {
+      margin-bottom: 15px;
+    }
+
+    .payment-summary p {
+      margin-bottom: 10px;
+    }
+
+    /* Tickets */
+    .tickets-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .ticket-card {
+      transition: all 0.3s;
+    }
+
+    /* Black and Orange Theme */
+    .ticket-detail-card {
+      background: #121212;
+      border: 1px solid #333;
+      color: #e0e0e0;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .page-title {
+      color: #ff8c00;
+    }
+
+    .ticket-detail-header {
+      border-bottom: 2px solid #ff8c00;
+    }
+
+    .flight-status {
+      background-color: #333;
+      color: #fff;
+    }
+
+    .flight-status.status-scheduled {
+      background-color: #4CAF50;
+    }
+
+    .flight-status.status-delayed {
+      background-color: #FFA500;
+    }
+
+    .flight-status.status-canceled {
+      background-color: #F44336;
+    }
+
+    .ticket-status {
+      background-color: #333;
+    }
+
+    .ticket-status.status-confirmed {
+      background-color: #4CAF50;
+    }
+
+    .ticket-status.status-cancelled {
+      background-color: #F44336;
+    }
+
+    .ticket-status.status-refund-requested {
+      background-color: #FFA500;
+    }
+
+    .detail-item label {
+      color: #ff8c00;
+    }
+
+    .payment-information {
+      background: #1e1e1e;
+      border-left: 3px solid #ff8c00;
+    }
+
+    .refund-information {
+      background: #1e1e1e;
+      border-left: 3px solid #ff8c00;
+    }
+
+    .btn {
+      background: #333;
+      color: #ff8c00;
+      border: 1px solid #ff8c00;
+    }
+
+    .btn:hover {
+      background: #ff8c00;
+      color: #121212;
+    }
+
+    .btn-danger {
+      background: #d32f2f;
+      color: white;
+    }
+
+    .btn-warning {
+      background: #ffa000;
+      color: white;
+    }
+
+    .btn-info {
+      background: #0288d1;
+      color: white;
+    }
+
+    .btn-primary {
+      background: #1976d2;
+      color: white;
+    }
+
+    /* Payment and Refund Details */
+    .payment-details-grid,
+    .refund-details-grid {
+      background: #252525;
+      padding: 15px;
+      border-radius: 5px;
+    }
+
+    .payment-details-grid p,
+    .refund-details-grid p {
+      margin: 8px 0;
+    }
+
+    .refund-status-pending {
+      color: #FFA500;
+      font-weight: bold;
+    }
+
+    .refund-status-approved {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+
+    .refund-status-rejected {
+      color: #F44336;
+      font-weight: bold;
+    }
+
+    /* Flight duration styling */
+    .flight-duration {
+      color: #ff8c00;
+      font-weight: bold;
+    }
+
+    /* Glass effect for modern look */
+    .glass {
+      background: rgba(30, 30, 30, 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 140, 0, 0.2);
+    }
+
+    .ticket-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .ticket-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .ticket-status {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .ticket-status.confirmed {
+      background-color: rgba(76, 175, 80, 0.2);
+      color: #4caf50;
+    }
+
+    .ticket-status.cancelled {
+      background-color: rgba(244, 67, 54, 0.2);
+      color: #f44336;
+    }
+
+    .ticket-status.pending {
+      background-color: rgba(255, 152, 0, 0.2);
+      color: #ff9800;
+    }
+
+    .ticket-details {
+      margin-bottom: 15px;
+    }
+
+    .ticket-details p {
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .ticket-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Ticket Details */
+    .ticket-detail-card {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .ticket-detail-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .ticket-detail-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    /* Reviews */
+    .reviews-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .review-card {
+      transition: all 0.3s;
+    }
+
+    .review-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .review-rating {
+      color: var(--accent-color);
+      font-size: 1.2rem;
+    }
+
+    .stars {
+      letter-spacing: 2px;
+    }
+
+    .review-text {
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .review-meta {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    /* Profile */
+    .profile-card {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .profile-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .profile-details {
+      margin-bottom: 30px;
+    }
+
+    .profile-details p {
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .profile-details label {
+      display: block;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      font-size: 0.9rem;
+    }
+
+    /* Notifications */
+    .notification-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .notification {
+      padding: 15px 20px;
+      border-radius: 5px;
+      color: white;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+      max-width: 300px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .notification.active {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .notification.info {
+      background-color: var(--info-color);
+    }
+
+    .notification.success {
+      background-color: var(--success-color);
+    }
+
+    .notification.warning {
+      background-color: var(--warning-color);
+    }
+
+    .notification.error {
+      background-color: var(--error-color);
+    }
+
+    /* Loading spinner */
+    #loading-spinner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    /* Payment Methods */
+    .payment-methods {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .payment-method {
+      flex: 1 1 calc(20% - 10px);
+      min-width: 120px;
+    }
+
+    .payment-method input {
+      display: none;
+    }
+
+    .method-card {
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .method-card i {
+      font-size: 24px;
+      margin-bottom: 8px;
+      display: block;
+      color: #555;
+    }
+
+    .payment-method input:checked+.method-card {
+      border-color: #4CAF50;
+      background-color: rgba(76, 175, 80, 0.1);
+      box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+    }
+
+    /* Payment Interfaces */
+    .payment-interfaces {
+      position: relative;
+      min-height: 200px;
+    }
+
+    .payment-interface {
+      display: none;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .payment-interface.active {
+      display: block;
+    }
+
+    /* UPI Apps */
+    .upi-apps {
+      display: flex;
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .upi-app {
+      width: 60px;
+      height: 60px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .upi-app:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .upi-app img {
+      max-width: 80%;
+      max-height: 80%;
+    }
+
+    /* Discount Section */
+    .discount-section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+
+    .discount-input {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .discount-input input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    #discount-status {
+      margin-top: 8px;
+      font-size: 0.9em;
+      color: #4CAF50;
+    }
+
+    /* Discount Options Styling */
+    .discount-options {
+      margin-top: 15px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .discount-option {
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .discount-option:hover {
+      background: #e9ecef;
+      border-color: #ced4da;
+    }
+
+    .discount-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .discount-code {
+      color: #2c3e50;
+    }
+
+    .discount-percent {
+      color: #27ae60;
+    }
+
+    .discount-details {
+      font-size: 0.9em;
+      color: #7f8c8d;
+    }
+
+    .discount-applied {
+      color: #27ae60;
+    }
+
+    .discount-error {
+      color: #e74c3c;
+    }
+
+    .discount-status i {
+      margin-right: 5px;
+    }
+
+    .valid-until {
+      margin-top: 5px;
+      font-style: italic;
+    }
+
+    .max-uses {
+      margin-top: 3px;
+      color: #e67e22;
+    }
+
+    /* Payment Actions */
+    .payment-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--accent-color);
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .empty-state p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    /* Payment Section Styles */
+    .payment-container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .payment-summary {
+      flex: 1;
+      min-width: 300px;
+      padding: 20px;
+    }
+
+    .payment-methods-container {
+      flex: 2;
+      min-width: 400px;
+      padding: 20px;
+    }
+
+    .ticket-summary,
+    .total,
+    .final-total {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .final-total {
+      border-top: 2px solid var(--accent-color);
+      margin-top: 10px;
+      padding-top: 15px;
+      font-size: 1.1em;
+    }
+
+    .discount-section {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.2);
+    }
+
+    .discount-input {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .discount-input input {
+      flex: 1;
+    }
+
+    #discount-options {
+      margin-top: 10px;
+    }
+
+    .discount-option {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .discount-option span {
+      font-size: 0.9em;
+    }
+
+    .btn-tiny {
+      padding: 4px 8px;
+      font-size: 0.8em;
+      background: var(--accent-color);
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .payment-methods {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .payment-method input {
+      display: none;
+    }
+
+    .method-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 100px;
+    }
+
+    .method-card i {
+      font-size: 1.5em;
+      margin-bottom: 8px;
+    }
+
+    .payment-method input:checked+.method-card {
+      border-color: var(--accent-color);
+      background: rgba(255, 107, 0, 0.1);
+    }
+
+    .payment-interfaces {
+      position: relative;
+      min-height: 300px;
+    }
+
+    .payment-interface {
+      display: none;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+    }
+
+    .payment-interface.active {
+      display: block;
+    }
+
+    .upi-apps {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .upi-app {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 80px;
+    }
+
+    .upi-app i {
+      font-size: 1.8em;
+      margin-bottom: 8px;
+    }
+
+    .upi-app:hover {
+      border-color: var(--accent-color);
+    }
+
+
+
+    .payment-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    /* Indian currency formatting */
+    .rupee-symbol {
+      font-family: sans-serif;
+    }
+
+    /* Payment summary styles */
+    .ticket-summary,
+    .subtotal,
+    .discount-applied,
+    .final-total {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .final-total {
+      border-top: 2px solid var(--accent-color);
+      font-size: 1.2em;
+      margin-top: 10px;
+      padding-top: 12px;
+    }
+
+    .discount-applied {
+      color: #4CAF50;
+    }
+
+    /* Payment method cards */
+    .method-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .method-card:hover {
+      border-color: var(--accent-color);
+    }
+
+    .method-card i {
+      font-size: 1.8em;
+      margin-bottom: 8px;
+    }
+
+    /* UPI apps */
+    .upi-apps {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .upi-app {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .upi-app:hover {
+      border-color: var(--accent-color);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .upi-app i {
+      font-size: 2em;
+      margin-bottom: 8px;
+    }
+
+
+
+
+    /* Dashboard */
+
+    /* Base Styles with Gradient Background */
+    body {
+      background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #121212 100%);
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    /* Glowing Header Effect */
+    .dashboard-header {
+      text-align: center;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .dashboard-header h1 {
+      color: #ff8c00;
+      font-size: 2.5rem;
+      text-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+      position: relative;
+      display: inline-block;
+    }
+
+    .dashboard-header h1::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #ff8c00, transparent);
+    }
+
+    /* Dashboard Cards with Glass Morphism Effect */
+    .dashboard-card {
+      background: rgba(30, 30, 30, 0.7);
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 140, 0, 0.1);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dashboard-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 140, 0, 0.1) 0%, transparent 70%);
+      transform: rotate(30deg);
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    .dashboard-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 140, 0, 0.2);
+    }
+
+    .dashboard-card:hover::before {
+      opacity: 1;
+    }
+
+    .dashboard-card h3 {
+      color: #ff8c00;
+      margin-top: 0;
+      padding-bottom: 12px;
+      position: relative;
+    }
+
+    .dashboard-card h3::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 50px;
+      height: 3px;
+      background: linear-gradient(90deg, #ff8c00, transparent);
+      border-radius: 3px;
+    }
+
+    /* Stats Numbers with Counter Animation */
+    .stat-number {
+      font-size: 2.8rem;
+      font-weight: bold;
+      color: #ff8c00;
+      margin: 15px 0;
+      display: inline-block;
+      position: relative;
+    }
+
+    .stat-number::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, #ff8c00, transparent);
+      opacity: 0.5;
+    }
+
+    /* Flight Cards with 3D Tilt Effect */
+    .flight-card {
+      background: rgba(37, 37, 37, 0.7);
+      border-left: 4px solid #ff8c00;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: all 0.4s ease;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+      position: relative;
+      overflow: hidden;
+      transform-style: preserve-3d;
+      perspective: 1000px;
+    }
+
+    .flight-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, transparent 60%, rgba(255, 140, 0, 0.05));
+      z-index: -1;
+    }
+
+    .flight-card:hover {
+      transform: translateY(-5px) rotateX(2deg) rotateY(2deg);
+      box-shadow: 0 12px 30px rgba(255, 140, 0, 0.15);
+      background: rgba(46, 46, 46, 0.8);
+    }
+
+    .flight-header h4 {
+      color: #ff8c00;
+      margin: 0 0 12px 0;
+      font-size: 1.2rem;
+      position: relative;
+      display: inline-block;
+    }
+
+    .flight-header h4::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, #ff8c00, transparent);
+    }
+
+    .flight-details {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .flight-times {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .flight-times span {
+      color: #b0b0b0;
+      font-size: 0.95rem;
+      position: relative;
+      padding-left: 20px;
+    }
+
+    .flight-times span::before {
+      content: '•';
+      color: #ff8c00;
+      position: absolute;
+      left: 0;
+    }
+
+    /* Enhanced Buttons with Gradient and Hover Effects */
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.4s ease;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #ff8c00 0%, #ff6d00 100%);
+      color: #121212;
+      box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
+    }
+
+    .btn-secondary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #ff6d00 0%, #ff8c00 100%);
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.4s ease;
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 8px 25px rgba(255, 140, 0, 0.4);
+    }
+
+    .btn-secondary:hover::before {
+      opacity: 1;
+    }
+
+    .btn-secondary:active {
+      transform: translateY(1px);
+    }
+
+    /* Animated Underline Effect for Hover States */
+    .hover-underline {
+      display: inline-block;
+      position: relative;
+    }
+
+    .hover-underline::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -2px;
+      left: 0;
+      background-color: #ff8c00;
+      transition: width 0.3s ease;
+    }
+
+    .hover-underline:hover::after {
+      width: 100%;
+    }
+
+    /* Pulse Animation for Important Elements */
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 140, 0, 0.4);
+      }
+
+      70% {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 12px rgba(255, 140, 0, 0);
+      }
+
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 140, 0, 0);
+      }
+    }
+
+    .highlight {
+      animation: pulse 2s infinite;
+    }
+
+    /* Floating Animation for Dashboard Cards */
+    @keyframes float {
+      0% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+
+      100% {
+        transform: translateY(0px);
+      }
+    }
+
+    .floating {
+      animation: float 6s ease-in-out infinite;
+    }
+
+    /* Responsive Grid with Gap Animation */
+    #upcoming-flights-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 25px;
+    }
+
+    /* Custom Scrollbar with Gradient */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: linear-gradient(180deg, #1e1e1e 0%, #252525 100%);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #ff8c00 0%, #ff6d00 100%);
+      border-radius: 10px;
+      border: 2px solid #1e1e1e;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #ff6d00 0%, #ff8c00 100%);
+    }
+
+    /* Loading Skeleton Animation */
+    @keyframes shimmer {
+      0% {
+        background-position: -468px 0
+      }
+
+      100% {
+        background-position: 468px 0
+      }
+    }
+
+    .skeleton {
+      background: #2a2a2a;
+      background-image: linear-gradient(to right, #2a2a2a 0%, #3a3a3a 20%, #2a2a2a 40%, #2a2a2a 100%);
+      background-repeat: no-repeat;
+      background-size: 800px 104px;
+      display: inline-block;
+      position: relative;
+      animation-duration: 1.5s;
+      animation-fill-mode: forwards;
+      animation-iteration-count: infinite;
+      animation-name: shimmer;
+      animation-timing-function: linear;
+    }
+
+    /* Neon Glow Effect for Active Elements */
+    .neon {
+      text-shadow: 0 0 5px #ff8c00, 0 0 10px #ff8c00, 0 0 15px #ff8c00;
+      transition: text-shadow 0.3s ease;
+    }
+
+    .neon-border {
+      box-shadow: 0 0 5px #ff8c00, 0 0 10px rgba(255, 140, 0, 0.5);
+      transition: box-shadow 0.3s ease;
+    }
+
+    .neon-border:hover {
+      box-shadow: 0 0 10px #ff8c00, 0 0 20px rgba(255, 140, 0, 0.7);
+    }
+
+    /* Tooltip Effects */
+    .tooltip {
+      position: relative;
+    }
+
+    .tooltip:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30, 30, 30, 0.9);
+      color: #ff8c00;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      z-index: 100;
+      border: 1px solid #ff8c00;
+    }
+
+    /* FLight details */
+    /* Flight Card Enhancements */
+    .flight-card {
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .flight-content {
+      padding: 15px 0;
+    }
+
+    .flight-time-item,
+    .flight-duration,
+    .flight-airline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      color: #b0b0b0;
+      font-size: 0.95rem;
+    }
+
+    .flight-time-item i,
+    .flight-duration i,
+    .flight-airline i {
+      color: #ff8c00;
+      font-size: 1rem;
+    }
+
+    .flight-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px dashed rgba(255, 140, 0, 0.2);
+    }
+
+    .flight-price {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #ff8c00;
+    }
+
+    .has-discount .original-price {
+      text-decoration: line-through;
+      font-size: 1rem;
+      color: #b0b0b0;
+      margin-right: 8px;
+    }
+
+    .flight-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #ff5722 0%, #ff8c00 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #ff8c00 0%, #ff5722 100%);
+    }
+
+    /* Badges and Warnings */
+    .discount-badge {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: #ff5722;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      box-shadow: 0 3px 10px rgba(255, 87, 34, 0.3);
+      z-index: 2;
+      animation: pulse 1.5s infinite;
+    }
+
+    .last-seats-warning {
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ff8c00;
+      color: #121212;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      white-space: nowrap;
+      box-shadow: 0 3px 10px rgba(255, 140, 0, 0.3);
+      z-index: 2;
+    }
+
+    .last-seats-warning i {
+      margin-right: 5px;
+    }
+
+    /* Icons (using Font Awesome classes as example) */
+    .icon-departure::before {
+      content: '🛫';
+    }
+
+    .icon-arrival::before {
+      content: '🛬';
+    }
+
+    .icon-clock::before {
+      content: '⏱️';
+    }
+
+    .icon-airline::before {
+      content: '✈️';
+    }
+
+    .icon-eye::before {
+      content: '👁️';
+    }
+
+    .icon-book::before {
+      content: '📖';
+    }
+
+    .icon-warning::before {
+      content: '⚠️';
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+      .flight-actions {
+        flex-direction: column;
+      }
+
+      .flight-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .flight-price {
+        align-self: flex-end;
+      }
+    }
+
+    /* FLight detaisl */
+
+    /* Flight Details Container */
+    .flight-detail-container {
+      background: rgba(30, 30, 30, 0.8);
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 140, 0, 0.2);
+    }
+
+    /* Flight Header */
+    #flight-number {
+      font-size: 1.8rem;
+      color: #ff8c00;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .operated-by {
+      font-size: 0.9rem;
+      color: #b0b0b0;
+      margin-left: 10px;
+    }
+
+    /* Airport Information */
+    .airport-code {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #ff8c00;
+    }
+
+    .airport-name {
+      font-size: 1.1rem;
+      margin: 5px 0;
+    }
+
+    .airport-terminal,
+    .airport-gate {
+      font-size: 0.9rem;
+      color: #b0b0b0;
+      display: inline-block;
+      margin-right: 15px;
+    }
+
+    /* Status Badges */
+    .status-badge {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .status-badge.on-time {
+      background-color: rgba(76, 175, 80, 0.2);
+      color: #4CAF50;
+    }
+
+    .status-badge.delayed {
+      background-color: rgba(255, 152, 0, 0.2);
+      color: #FF9800;
+    }
+
+    .status-badge.cancelled {
+      background-color: rgba(244, 67, 54, 0.2);
+      color: #F44336;
+    }
+
+    .status-badge.boarding {
+      background-color: rgba(33, 150, 243, 0.2);
+      color: #2196F3;
+    }
+
+    .status-reason {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: normal;
+      margin-top: 3px;
+    }
+
+    /* Seats Visualization */
+    .seats-info {
+      margin-top: 10px;
+    }
+
+    .seats-visual {
+      height: 8px;
+      background-color: #333;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .seats-available {
+      height: 100%;
+      background: linear-gradient(90deg, #ff8c00, #ff6d00);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .last-seats-warning {
+      color: #ff8c00;
+      font-size: 0.9rem;
+      margin-left: 10px;
+    }
+
+    .last-seats-warning i {
+      margin-right: 3px;
+    }
+
+    /* Price Display */
+    .price-display {
+      font-size: 1.4rem;
+      font-weight: bold;
+    }
+
+    .price-amount {
+      color: #ff8c00;
+    }
+
+    .original-price {
+      text-decoration: line-through;
+      color: #b0b0b0;
+      font-size: 1rem;
+      margin-right: 8px;
+    }
+
+    .discount-amount {
+      background-color: #ff5722;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      margin-left: 5px;
+    }
+
+    .fare-class {
+      display: block;
+      font-size: 0.9rem;
+      color: #b0b0b0;
+      margin-top: 5px;
+    }
+
+    /* Amenities Grid */
+    #flight-amenities {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .amenity-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: #b0b0b0;
+    }
+
+    .amenity-item i {
+      color: #ff8c00;
+    }
+
+    /* Timeline Connection */
+    .flight-timeline {
+      position: relative;
+      margin: 20px 0;
+    }
+
+    .flight-timeline::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, transparent, #ff8c00, transparent);
+      transform: translateX(-50%);
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+      #flight-number {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .operated-by {
+        margin-left: 0;
+      }
+
+      #flight-amenities {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      }
+    }
+
+    /* Ticket */
+    /* Ticket Card Styles */
+    .ticket-card {
+      background: rgba(30, 30, 30, 0.7);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      border-left: 4px solid #ff8c00;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ticket-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(255, 140, 0, 0.1);
+    }
+
+    .ticket-card.confirmed {
+      border-left-color: #4CAF50;
+    }
+
+    .ticket-card.pending {
+      border-left-color: #FF9800;
+    }
+
+    .ticket-card.cancelled {
+      border-left-color: #F44336;
+      opacity: 0.8;
+    }
+
+    /* Ticket Header */
+    .ticket-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px dashed rgba(255, 140, 0, 0.2);
+    }
+
+    .flight-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .flight-number {
+      margin: 0;
+      color: #ff8c00;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ticket-status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ticket-status-badge.confirmed {
+      background-color: rgba(76, 175, 80, 0.2);
+      color: #4CAF50;
+    }
+
+    .ticket-status-badge.pending {
+      background-color: rgba(255, 152, 0, 0.2);
+      color: #FF9800;
+    }
+
+    .ticket-status-badge.cancelled {
+      background-color: rgba(244, 67, 54, 0.2);
+      color: #F44336;
+    }
+
+    .departure-countdown {
+      font-size: 0.9rem;
+      color: #b0b0b0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .departure-countdown.warning {
+      color: #FF9800;
+    }
+
+    /* Ticket Body */
+    .route-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 15px 0;
+      position: relative;
+    }
+
+    .route-info::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.3), transparent);
+    }
+
+    .airport {
+      text-align: center;
+      min-width: 100px;
+    }
+
+    .airport .code {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #ff8c00;
+    }
+
+    .airport .name {
+      font-size: 0.8rem;
+      color: #b0b0b0;
+    }
+
+    .flight-duration {
+      color: #b0b0b0;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ticket-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #b0b0b0;
+      font-size: 0.9rem;
+    }
+
+    .meta-item i {
+      color: #ff8c00;
+    }
+
+    .meta-item.price {
+      font-weight: bold;
+      color: #ff8c00;
+    }
+
+    .discount-badge {
+      background-color: #ff5722;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      margin-left: 8px;
+    }
+
+    /* Ticket Actions */
+    .ticket-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px dashed rgba(255, 140, 0, 0.2);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #ff8c00;
+      color: #ff8c00;
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 140, 0, 0.1);
+    }
+
+    /* Ticket Footer */
+    .ticket-footer {
+      margin-top: 15px;
+      padding-top: 15px;
+      font-size: 0.8rem;
+      color: #b0b0b0;
+      border-top: 1px dashed rgba(255, 140, 0, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      border-radius: 12px;
+      background: rgba(30, 30, 30, 0.5);
+      border: 1px dashed rgba(255, 140, 0, 0.3);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      color: #ff8c00;
+      margin-bottom: 15px;
+    }
+
+    .empty-state h4 {
+      color: #ff8c00;
+      margin: 10px 0;
+    }
+
+    .empty-state p {
+      color: #b0b0b0;
+      margin-bottom: 20px;
+    }
+
+    /* Animations */
+    @keyframes pulse {
+      0% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+
+      100% {
+        opacity: 1;
+      }
+    }
+
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .route-info {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .ticket-meta {
+        grid-template-columns: 1fr;
+      }
+
+      .ticket-actions {
+        flex-direction: column;
+      }
+    }
+
+    /* Payment */
+    /* Payment Container */
+    .payment-container {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 25px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Payment Summary */
+    .payment-summary {
+      padding: 25px;
+    }
+
+    .payment-summary h3 {
+      color: #ff8c00;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ticket-list {
+      margin-bottom: 20px;
+    }
+
+    .ticket-summary {
+      padding: 12px 0;
+      border-bottom: 1px dashed rgba(255, 140, 0, 0.2);
+    }
+
+    .ticket-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .ticket-class {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+
+    .ticket-class.economy {
+      color: #4CAF50;
+    }
+
+    .ticket-class.premium-economy {
+      color: #2196F3;
+    }
+
+    .ticket-class.business {
+      color: #9C27B0;
+    }
+
+    .ticket-class.first-class {
+      color: #FF9800;
+    }
+
+    .ticket-seat {
+      font-size: 0.85rem;
+      color: #b0b0b0;
+    }
+
+    /* Price Breakdown */
+    .price-breakdown {
+      margin: 25px 0;
+      padding: 15px;
+      background: rgba(30, 30, 30, 0.5);
+      border-radius: 8px;
+    }
+
+    .price-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+
+    .price-row.subtotal {
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    .price-row.discount span:last-child {
+      color: #4CAF50;
+    }
+
+    .price-row.total {
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin-top: 10px;
+    }
+
+    /* Discount Section */
+    .discount-section {
+      margin-top: 20px;
+    }
+
+    .discount-input {
+      display: flex;
+      gap: 10px;
+    }
+
+    .discount-input input {
+      flex: 1;
+      padding: 10px 15px;
+      border-radius: 6px;
+      border: 1px solid #444;
+      background: #252525;
+      color: white;
+    }
+
+    .btn-small {
+      padding: 10px 15px;
+    }
+
+    /* Payment Details */
+    .payment-details {
+      padding: 25px;
+    }
+
+    .payment-tabs {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+
+    .payment-tab {
+      padding: 12px 15px;
+      background: #252525;
+      border: none;
+      border-radius: 6px;
+      color: #b0b0b0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .payment-tab.active {
+      background: #ff8c00;
+      color: white;
+    }
+
+    .payment-interface {
+      display: none;
+    }
+
+    .payment-interface.active {
+      display: block;
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #b0b0b0;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 15px;
+      border-radius: 6px;
+      border: 1px solid #444;
+      background: #252525;
+      color: white;
+    }
+
+    .input-with-icon {
+      position: relative;
+    }
+
+    .input-with-icon .card-icons {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      gap: 8px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    /* UPI Apps */
+    .upi-apps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .upi-app {
+      padding: 15px;
+      border-radius: 8px;
+      background: #252525;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .upi-app:hover {
+      background: #ff8c00;
+    }
+
+    .upi-app .app-icon {
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+    }
+
+    /* Payment Actions */
+    .payment-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #444;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #ff8c00;
+      color: #ff8c00;
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 140, 0, 0.1);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .payment-container {
+        grid-template-columns: 1fr;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .payment-tabs {
+        flex-wrap: wrap;
+      }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .payment-container {
+        flex-direction: column;
+      }
+
+      .payment-methods {
+        justify-content: center;
+      }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 992px) {
+      .main-layout {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        padding: 10px 0;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .nav-menu {
+        display: flex;
+        overflow-x: auto;
+        padding: 0 15px;
+      }
+
+      .nav-item {
+        margin-bottom: 0;
+        margin-right: 5px;
+      }
+
+      .nav-link {
+        padding: 10px 15px;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+      }
+
+      .nav-link.active {
+        border-left: none;
+        border-bottom: 3px solid var(--accent-color);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .seat-map {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    @media (max-width: 576px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .seat-map {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .ticket-actions {
+        flex-direction: column;
+      }
+    }
+
+    /* Modal styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+
+    .modal-content {
+      position: relative;
+      background-color: #1e1e1e;
+      border-radius: 8px;
+      padding: 30px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      z-index: 1001;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #aaa;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .modal-close:hover {
+      color: #fff;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body>
+  <header>
+    <div class="container header-content">
+      <a href="#" class="logo" data-section="dashboard">
+        <i class="fas fa-plane"></i>
+        <span>SkyBook</span>
+      </a>
+      <div class="user-info">
+        <span id="username">Loading...</span>
+        <button id="logout-btn" class="logout-btn">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <aside class="sidebar">
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#" class="nav-link active" data-section="dashboard">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-section="flightSearch">
+            <i class="fas fa-search"></i>
+            <span>Find Flights</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-section="tickets">
+            <i class="fas fa-ticket-alt"></i>
+            <span>My Tickets</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-section="reviews">
+            <i class="fas fa-star"></i>
+            <span>My Reviews</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-section="profile">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <!-- Dashboard Section -->
+      <section id="dashboard-section" class="section active">
+        <div class="page-header">
+          <h1 class="page-title" id="page-title">Dashboard</h1>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card glass">
+            <h3>Total Tickets</h3>
+            <p id="total-tickets">0</p>
+          </div>
+          <div class="stat-card glass">
+            <h3>Confirmed</h3>
+            <p id="confirmed-tickets">0</p>
+          </div>
+          <div class="stat-card glass">
+            <h3>Cancelled</h3>
+            <p id="cancelled-tickets">0</p>
+          </div>
+          <div class="stat-card glass">
+            <h3>Pending</h3>
+            <p id="pending-tickets">0</p>
+          </div>
+          <div class="stat-card glass">
+            <h3>Total Spent</h3>
+            <p id="total_spent-tickets">₹0</p>
+          </div>
+        </div>
+
+        <h2 style="margin-bottom: 20px;">Upcoming Flights</h2>
+        <div class="flights-grid" id="upcoming-flights-list">
+          <div class="empty-state glass">
+            <p>Loading upcoming flights...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Flight Search Section -->
+      <section id="flight-search-section" class="section">
+        <div class="page-header">
+          <h1 class="page-title" id="page-title">Find Flights</h1>
+        </div>
+
+        <form id="flight-search-form" class="flight-search-form glass">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="origin">From</label>
+              <select id="origin" class="form-control airport-select" name="origin" required>
+                <option value="">Select Airport</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="destination">To</label>
+              <select id="destination" class="form-control airport-select" name="destination" required>
+                <option value="">Select Airport</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="departure-date">Departure Date</label>
+              <input type="date" id="departure-date" class="form-control" name="date" required>
+            </div>
+            <div class="form-group">
+              <label for="passengers">Passengers</label>
+              <select id="passengers" class="form-control" name="passengers">
+                <option value="1">1 Passenger</option>
+                <option value="2">2 Passengers</option>
+                <option value="3">3 Passengers</option>
+                <option value="4">4 Passengers</option>
+                <option value="5">5 Passengers</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn">
+            <i class="fas fa-search"></i> Search Flights
+          </button>
+        </form>
+
+        <h2 style="margin-bottom: 20px;">Flight Results</h2>
+        <div id="flight-results">
+          <div class="empty-state glass">
+            <p>Search for flights to see results</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Flight Details Section -->
+      <section id="flight-details-section" class="section">
+        <div class="page-header">
+          <h1 class="page-title" id="page-title">Flight Details</h1>
+
+        </div>
+
+        <div class="flight-detail-card glass">
+          <div class="flight-detail-header">
+            <h2 id="flight-number">Flight Number</h2>
+          </div>
+          <div class="flight-detail-content">
+            <div class="detail-item">
+              <label>Origin</label>
+              <p id="detail-origin">-</p>
+            </div>
+            <div class="detail-item">
+              <label>Destination</label>
+              <p id="detail-destination">-</p>
+            </div>
+            <div class="detail-item">
+              <label>Departure</label>
+              <p id="detail-departure">-</p>
+            </div>
+            <div class="detail-item">
+              <label>Arrival</label>
+              <p id="detail-arrival">-</p>
+            </div>
+            <div class="detail-item">
+              <label>Status</label>
+              <p id="detail-status">-</p>
+            </div>
+            <div class="detail-item">
+              <label>Duration</label>
+              <p id="detail-duration">-</p>
+            </div>
+          </div>
+          <div style="text-align: center;">
+            <button id="book-flight-btn" class="btn">
+              <i class="fas fa-ticket-alt"></i> Book Flight
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seat Selection Section -->
+      <section id="seat-selection-section" class="section">
+        <div class="page-header">
+          <h1 class="page-title" id="page-title">Select Seats</h1>
+        </div>
+
+        <div class="seat-map-container">
+          <div class="glass" style="text-align: center; padding: 20px;">
+            <h3>Select your seats</h3>
+            <p>Click on available seats to select them</p>
+          </div>
+
+          <div id="seat-map" class="seat-map"></div>
+
+          <div id="seat-summary" class="seat-summary glass"></div>
+
+          <div style="text-align: center;">
+            <button id="proceed-to-passengers" class="btn">
+              <i class="fas fa-arrow-right"></i> Proceed to Passenger Details
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Passenger Section -->
+      <section id="passenger-section" class="section">
+        <div class="page-header">
+          <h1 class="page-title">Passenger Details</h1>
+        </div>
+        <form id="passenger-forms" class="glass">
+          <div id="passenger-forms-container">
+            <!-- Dynamic passenger forms will be inserted here -->
+            <div class="passenger-group-form glass">
+              <h3 class="group-title">Passenger Group (2 Travelers)</h3>
+
+              <!-- Passenger 1 -->
+              <div class="passenger-form" data-passenger-index="1" data-seat-id="">
+                <h4 class="passenger-number">Passenger 1</h4>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="first-name-1">First Name*</label>
+                    <input type="text" id="first-name-1" name="passengers[1][first_name]" required minlength="2"
+                      maxlength="50">
+                  </div>
+                  <div class="form-group">
+                    <label for="last-name-1">Last Name*</label>
+                    <input type="text" id="last-name-1" name="passengers[1][last_name]" required minlength="2"
+                      maxlength="50">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="email-1">Email*</label>
+                  <input type="email" id="email-1" name="passengers[1][email]" required maxlength="100">
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="passport-1">Passport Number*</label>
+                    <input type="text" id="passport-1" name="passengers[1][passport_number]" required
+                      pattern="[A-Za-z0-9]{6,20}">
+                  </div>
+                  <div class="form-group">
+                    <label for="phone-1">Phone Number*</label>
+                    <input type="tel" id="phone-1" name="passengers[1][phone]" required pattern="[0-9]{10,15}"
+                      title="10-15 digit phone number">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="dob-1">Date of Birth</label>
+                    <input type="date" id="dob-1" name="passengers[1][date_of_birth]">
+                  </div>
+                </div>
+                <input type="hidden" name="passengers[1][user_id]" value="">
+              </div>
+
+              <!-- Passenger 2 -->
+              <div class="passenger-form" data-passenger-index="2" data-seat-id="">
+                <h4 class="passenger-number">Passenger 2</h4>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="first-name-2">First Name*</label>
+                    <input type="text" id="first-name-2" name="passengers[2][first_name]" required minlength="2"
+                      maxlength="50">
+                  </div>
+                  <div class="form-group">
+                    <label for="last-name-2">Last Name*</label>
+                    <input type="text" id="last-name-2" name="passengers[2][last_name]" required minlength="2"
+                      maxlength="50">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="email-2">Email*</label>
+                  <input type="email" id="email-2" name="passengers[2][email]" required maxlength="100">
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="passport-2">Passport Number*</label>
+                    <input type="text" id="passport-2" name="passengers[2][passport_number]" required
+                      pattern="[A-Za-z0-9]{6,20}">
+                  </div>
+                  <div class="form-group">
+                    <label for="phone-2">Phone Number*</label>
+                    <input type="tel" id="phone-2" name="passengers[2][phone]" required pattern="[0-9]{10,15}"
+                      title="10-15 digit phone number">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="dob-2">Date of Birth</label>
+                    <input type="date" id="dob-2" name="passengers[2][date_of_birth]">
+                  </div>
+                </div>
+                <input type="hidden" name="passengers[2][user_id]" value="">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="back-to-seats">
+              Back to Seat Selection
+            </button>
+            <button type="submit" class="btn btn-primary" id="proceed-to-payment">
+              Proceed to Payment
+            </button>
+          </div>
+        </form>
+      </section>
+
+
+      <section id="payment-section" class="section">
+        <div class="page-header">
+          <h1 class="page-title">Payment</h1>
+        </div>
+
+        <form id="payment-form" class="payment-container" novalidate>
+          <div class="payment-summary glass">
+            <h3>Payment Summary</h3>
+            <div class="ticket-summary">
+              <span>Seat 12A (Economy)</span>
+              <span>₹<span class="ticket-price">2112.04</span></span>
+            </div>
+            <div class="total">
+              <span>Subtotal:
+                ₹<span class="subtotal">2112.04</span></span>
+            </div>
+            <div class="final-total">
+              <strong>Total Amount:</strong>
+              <strong>₹<span class="total-amount">2112.04</span></strong>
+            </div>
+
+            <div class="discount-section">
+              <label for="discount-code">Discount Codes:</label>
+
+              <div id="discount-options">
+                <div class="discount-option">
+                  <span>SUMMER10 - 10% off</span>
+                  <button class="btn-tiny apply-discount-btn" data-code="SUMMER10" data-percent="10">Apply</button>
+                </div>
+                <div class="discount-option">
+                  <span>WELCOME20 - 20% off</span>
+                  <button class="btn-tiny apply-discount-btn" data-code="WELCOME20" data-percent="20">Apply</button>
+                </div>
+              </div>
+              <div id="discount-status"></div>
+            </div>
+          </div>
+
+          <div class="payment-methods-container glass">
+            <h3>Select Payment Method</h3>
+            <div class="payment-methods">
+              <label class="payment-method">
+                <input type="radio" name="paymentMethod" value="Credit" checked>
+                <div class="method-card">
+                  <i class="fab fa-cc-visa"></i>
+                  <i class="fab fa-cc-mastercard"></i>
+                  <span>Credit Card</span>
+                </div>
+              </label>
+              <label class="payment-method">
+                <input type="radio" name="paymentMethod" value="Debit">
+                <div class="method-card">
+                  <i class="fab fa-cc-visa"></i>
+                  <i class="fab fa-cc-mastercard"></i>
+                  <span>Debit Card</span>
+                </div>
+              </label>
+              <label class="payment-method">
+                <input type="radio" name="paymentMethod" value="UPI">
+                <div class="method-card">
+                  <i class="fas fa-mobile-alt"></i>
+                  <span>UPI</span>
+                </div>
+              </label>
+            </div>
+
+            <div class="payment-interfaces">
+              <div id="Credit-payment" class="payment-interface active">
+                <div class="form-group">
+                  <label for="card-number">Card Number</label>
+                  <input type="text" id="card-number" placeholder="1234 5678 9012 3456" required>
+                  <div class="card-icons">
+                    <i class="fab fa-cc-visa"></i>
+                    <i class="fab fa-cc-mastercard"></i>
+                    <i class="fab fa-cc-amex"></i>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="card-name">Name on Card</label>
+                  <input type="text" id="card-name" placeholder="John Doe" required>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="card-expiry">Expiry Date</label>
+                    <input type="text" id="card-expiry" placeholder="MM/YY" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="card-cvv">CVV</label>
+                    <input type="text" id="card-cvv" placeholder="123" required>
+                    <i class="fas fa-question-circle" title="3-digit code on back of card"></i>
+                  </div>
+                </div>
+              </div>
+
+              <div id="Debit-payment" class="payment-interface">
+                <div class="form-group">
+                  <label for="debit-card-number">Card Number</label>
+                  <input type="text" id="debit-card-number" placeholder="1234 5678 9012 3456" required>
+                  <div class="card-icons">
+                    <i class="fab fa-cc-visa"></i>
+                    <i class="fab fa-cc-mastercard"></i>
+                    <i class="fab fa-cc-amex"></i>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="debit-card-name">Name on Card</label>
+                  <input type="text" id="debit-card-name" placeholder="John Doe" required>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="debit-card-expiry">Expiry Date</label>
+                    <input type="text" id="debit-card-expiry" placeholder="MM/YY" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="debit-card-cvv">CVV</label>
+                    <input type="text" id="debit-card-cvv" placeholder="123" required>
+                    <i class="fas fa-question-circle" title="3-digit code on back of card"></i>
+                  </div>
+                </div>
+              </div>
+
+              <div id="UPI-payment" class="payment-interface">
+                <div class="form-group">
+                  <label for="upi-id">UPI ID</label>
+                  <input type="text" id="upi-id" placeholder="yourname@upi" required>
+                </div>
+                <div class="upi-apps">
+                  <div class="upi-app" data-app="gpay">
+                    <i class="fab fa-google-pay fa-2x"></i>
+                    <span>Google Pay</span>
+                  </div>
+                  <div class="upi-app" data-app="paytm">
+                    <i class="fas fa-rupee-sign fa-2x"></i>
+                    <span>Paytm</span>
+                  </div>
+                  <div class="upi-app" data-app="phonepe">
+                    <i class="fas fa-mobile-alt fa-2x"></i>
+                    <span>PhonePe</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="payment-actions">
+              <button type="button" class="btn btn-secondary">Back</button>
+              <button type="submit" class="btn btn-primary" id="submit-payment">Pay ₹<span
+                  class="pay-amount">2112.04</span></button>
+            </div>
+          </div>
+        </form>
+      </section>
+      <!-- Confirmation Section -->
+      <section id="confirmation-section" class="section">
+        <div class="page-header">
+          <h1 class="page-title">Booking Confirmation</h1>
+        </div>
+
+        <div class="glass" style="max-width: 600px; margin: 0 auto; text-align: center; padding: 40px;">
+          <div style="font-size: 3rem; color: var(--accent-color); margin-bottom: 20px;">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <h2 style="margin-bottom: 20px;">Booking Confirmed!</h2>
+          <p style="margin-bottom: 15px;">Your booking has been successfully processed.</p>
+          <p style="margin-bottom: 15px;">Confirmation Code: <strong id="confirmation-code">N/A</strong></p>
+          <p style="margin-bottom: 30px;">Total Paid: <strong id="total-paid">₹0.00</strong></p>
+          <div style="display: flex; justify-content: center; gap: 15px;">
+            <button type="button" id="view-ticket" class="btn">
+              <i class="fas fa-ticket-alt"></i> View Ticket
+            </button>
+            <button type="button" id="back-to-dashboard" class="btn btn-secondary">
+              <i class="fas fa-home"></i> Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </section>
+
+
+      <section id="tickets-section" class="section">
+        <div class="page-header">
+          <h1 class="page-title" id="page-title">My Tickets</h1>
+          <div style="display: flex; gap: 10px;">
+            <select id="ticket-status-filter" class="form-control">
+              <option value="all">All Tickets</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Pending">Pending</option>
+              <option value="Cancelled">Cancelled</option>
+              <option value="Expired">Expired</option>
+            </select>
+
+          </div>
+          <div id="tickets-pagination"></div>
+        </div>
+
+        <div class="tickets-list" id="tickets-list">
+          <!-- Ticket cards will be dynamically inserted here -->
+          <div class="empty-state glass">
+            <p>Loading your tickets...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ticket Details Section -->
+
+      <section id="ticket-details-section" class="section">
+        <div class="page-header">
+          <h1 class="page-title">Ticket Details</h1>
+          <button id="back-to-tickets" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Tickets
+          </button>
+        </div>
+
+        <div class="ticket-detail-card glass">
+          <div class="ticket-detail-header">
+            <div class="flight-header">
+              <h2 id="ticket-flight-number">Flight Number<span id="flight-status" class="flight-status"></span></h2>
+              <div class="flight-status-container">
+
+                <span id="ticket-status" class="ticket-status">Confirmed</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ticket-detail-content gl">
+            <div class="detail-item glass">
+              <label>Passenger</label>
+              <p id="ticket-passenger">-</p>
+            </div>
+            <div class="detail-item glass">
+              <label>Passport Number</label>
+              <p id="ticket-passport">-</p>
+            </div>
+
+
+            <div class="detail-item glass">
+              <label>Seat</label>
+              <p id="ticket-seat">-</p>
+            </div>
+
+            <div class="detail-item glass">
+              <label>Airline</label>
+              <p id="ticket-airline">-</p>
+              <label>Flight Status</label>
+
+              <p id="ticket-flight-status">-</p>
+            </div>
+
+            <div class="flight-timings glass">
+              <div class="detail-item">
+                <label>Departure</label>
+                <p id="ticket-departure">-</p>
+                <small id="ticket-departure-code">-</small>
+              </div>
+              <div class="flight-duration">
+                <i class="fas fa-plane"></i>
+                <span id="flight-duration">-</span>
+              </div>
+              <div class="detail-item">
+                <label>Arrival</label>
+                <p id="ticket-arrival">-</p>
+                <small id="ticket-arrival-code">-</small>
+              </div>
+            </div>
+
+            <!-- Payment Information Section -->
+            <div class="payment-information glass">
+              <h3><i class="fas fa-credit-card"></i> Payment Details</h3>
+              <div class="payment-details-grid">
+                <div class="detail-item">
+                  <label>Ticket Price</label>
+                  <p id="ticket-price">-</p>
+                </div>
+
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Refund Status Section -->
+          <div id="refund-status" class="refund-information glass" style="display: none;">
+            <h3><i class="fas fa-money-bill-wave"></i> Refund Status</h3>
+            <div class="refund-details-grid">
+
+            </div>
+          </div>
+
+          <div class="ticket-actions">
+            <button id="print-ticket" class="btn print-ticket-btn" data-ticket-id="">
+              <i class="fas fa-print"></i> Print Ticket
+            </button>
+            <button id="cancel-ticket" class="btn btn-danger" data-ticket-id="" style="display: none;">
+              <i class="fas fa-times"></i> Cancel Ticket
+            </button>
+            <button id="request-refund" class="btn btn-warning" data-ticket-id="" style="display: none;">
+              <i class="fas fa-money-bill-wave"></i> Request Refund
+            </button>
+            <button id="write-review" class="btn btn-info" data-ticket-id="" style="display: none;">
+              <i class="fas fa-star"></i> Write Review
+            </button>
+
+          </div>
+        </div>
+      </section>
+      <!-- Reviews Section -->
+      <section id="reviews-section" class="section">
+        <div class="page-header">
+          <h1 class="page-title" id="page-title">My Reviews</h1>
+        </div>
+
+        <div class="reviews-list" id="reviews-list">
+          <div class="empty-state glass">
+            <p>Loading your reviews...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Profile Section -->
+      <section id="profile-section" class="section">
+        <div class="page-header">
+          <h1 class="page-title" id="page-title">My Profile</h1>
+        </div>
+
+        <div class="profile-card glass">
+          <div class="profile-header">
+            <h2>Profile Information</h2>
+          </div>
+          <div class="profile-details">
+            <p>
+              <label>Name</label>
+              <span id="profile-name">Loading...</span>
+            </p>
+            <p>
+              <label>Email</label>
+              <span id="profile-email">Loading...</span>
+            </p>
+            <p>
+              <label>Member Since</label>
+              <span id="profile-join-date">Loading...</span>
+            </p>
+          </div>
+
+          <h3 style="margin-bottom: 20px;">Update Profile</h3>
+          <form id="update-profile-form">
+            <div class="form-group">
+              <label for="update-name">Name</label>
+              <input type="text" id="update-name" class="form-control" name="name">
+            </div>
+            <div class="form-group">
+              <label for="update-email">Email</label>
+              <input type="email" id="update-email" class="form-control" name="email">
+            </div>
+            <div class="form-group">
+              <label for="current-password">Current Password (leave blank to keep unchanged)</label>
+              <input type="password" id="current-password" class="form-control" name="current_password">
+            </div>
+            <div class="form-group">
+              <label for="new-password">New Password (leave blank to keep unchanged)</label>
+              <input type="password" id="new-password" class="form-control" name="new_password">
+            </div>
+            <button type="submit" class="btn">
+              <i class="fas fa-save"></i> Save Changes
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Notification Container -->
+  <div id="notification-container" class="notification-container"></div>
+
+  <!-- Loading Spinner -->
+  <div id="loading-spinner">
+    <div class="spinner"></div>
+  </div>
+
+  <script src="js/user.js"></script>
+</body>
+
+</html>
