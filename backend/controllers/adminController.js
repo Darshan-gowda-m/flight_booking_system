@@ -211,597 +211,227 @@ class AdminController {
   }
 
   async getCombinedDashboardStats(req, res) {
+    const conn = await pool.getConnection()
     try {
       const { period = 'month' } = req.query
+      const currentMinute = Math.floor(Date.now() / 60000)
+      const cacheKey = `dashboard:${period}:${currentMinute}`
 
-      let dateRange
-      const now = new Date()
-
-      switch (period.toLowerCase()) {
-        case 'day':
-          dateRange = {
-            start: new Date(now.setHours(0, 0, 0, 0)),
-            end: new Date(now.setHours(23, 59, 59, 999)),
-          }
-          break
-        case 'week':
-          const startOfWeek = new Date(now)
-          startOfWeek.setDate(now.getDate() - now.getDay())
-          dateRange = {
-            start: new Date(startOfWeek.setHours(0, 0, 0, 0)),
-            end: new Date(
-              new Date(startOfWeek).setDate(startOfWeek.getDate() + 6)
-            ),
-          }
-          break
-        case 'month':
-          dateRange = {
-            start: new Date(now.getFullYear(), now.getMonth(), 1),
-            end: new Date(now.getFullYear(), now.getMonth() + 1, 0),
-          }
-          break
-        case 'year':
-          dateRange = {
-            start: new Date(now.getFullYear(), 0, 1),
-            end: new Date(now.getFullYear(), 11, 31),
-          }
-          break
-        default: // 'all'
-          dateRange = {
-            start: new Date(0),
-            end: new Date(),
-          }
+      // Attempt to retrieve cached data
+      const cachedData = await client.get(cacheKey)
+      if (cachedData) {
+        logger.debug(`Serving dashboard from cache for key: ${cacheKey}`)
+        return res.status(200).json({
+          success: true,
+          source: 'cache',
+          data: JSON.parse(cachedData),
+        })
       }
 
-      const [
-        [totals],
-        statusDistribution,
-        recentBookings,
-        revenueTrends,
-        popularRoutes,
-        userSignups,
-        userActivity,
-        airlineStats,
-        airportStats,
-        [activeUsers],
-        ticketStatusStats,
-        reviewStats,
-        [flightStats],
-        [airportDetailedStats],
-        revenueByFlight,
-        revenueByAirport,
-        [passengerStats],
-        flightStatusStats,
-        topFlights,
-        topAirports,
-        bookingTrends,
-        revenueByClass,
-        refundTrends,
-        userDemographics,
-        flightOccupancy,
-      ] = await Promise.all([
-        // Basic totals - filtered by period
-        pool.query(
-          `SELECT 
-            (SELECT COUNT(*) FROM airports WHERE is_active = TRUE) AS total_airports,
-            (SELECT COUNT(*) FROM airlines WHERE is_active = TRUE) AS total_airlines,
-            (SELECT COUNT(*) FROM users WHERE is_active = TRUE) AS total_users,
-            (SELECT COUNT(*) FROM flights WHERE departure_time BETWEEN ? AND ?) AS total_flights,
-            (SELECT COUNT(*) FROM tickets WHERE status = 'Confirmed' AND created_at BETWEEN ? AND ?) AS total_tickets_sold,
-            (SELECT SUM(amount) FROM payments WHERE status = 'Success' AND created_at BETWEEN ? AND ?) AS total_revenue,
-            (SELECT COUNT(*) FROM refunds WHERE status = 'Approved' AND created_at BETWEEN ? AND ?) AS total_refunds,
-            (SELECT COUNT(DISTINCT country) FROM airports) AS countries_served
-          `,
-          [
-            dateRange.start,
-            dateRange.end,
-            dateRange.start,
-            dateRange.end,
-            dateRange.start,
-            dateRange.end,
-            dateRange.start,
-            dateRange.end,
-          ]
-        ),
+      // Calculate date range for queries
+      const dateRange = this.calculateDateRange(period)
+      if (!dateRange.start || !dateRange.end) {
+        throw new Error('Invalid date range calculation')
+      }
 
-        // Flight status distribution - filtered by period
-        pool.query(
-          `SELECT status, COUNT(*) AS count FROM flights 
-           WHERE departure_time BETWEEN ? AND ?
-           GROUP BY status`,
-          [dateRange.start, dateRange.end]
-        ),
+      // Execute consolidated main stats query
+      const [mainStats] = await conn.query(
+        `
+        SELECT 
+          (SELECT COUNT(*) FROM airports WHERE is_active = 1) AS airports,
+          (SELECT COUNT(*) FROM airlines WHERE is_active = 1) AS airlines,
+          (SELECT COUNT(*) FROM users WHERE is_active = 1) AS users,
+          (SELECT COUNT(*) FROM flights 
+           WHERE departure_time BETWEEN ? AND ?) AS flights,
+          (SELECT COUNT(*) FROM tickets 
+           WHERE status = 'confirmed' 
+           AND created_at BETWEEN ? AND ?) AS tickets,
+          (SELECT COALESCE(SUM(amount), 0) FROM payments 
+           WHERE status = 'Success' 
+           AND created_at BETWEEN ? AND ?) AS revenue,
+          (SELECT COUNT(*) FROM refunds 
+           WHERE status = 'Approved' 
+           AND created_at BETWEEN ? AND ?) AS refunds
+      `,
+        [
+          dateRange.start,
+          dateRange.end,
+          dateRange.start,
+          dateRange.end,
+          dateRange.start,
+          dateRange.end,
+          dateRange.start,
+          dateRange.end,
+        ]
+      )
 
-        // Recent bookings - filtered by period
-        pool.query(
-          `SELECT 
-            t.ticket_id, 
-            f.flight_number, 
-            CONCAT(p.first_name, ' ', p.last_name) AS passenger_name, 
-            t.price, 
-            t.status
-          FROM tickets t
-          JOIN flights f ON t.flight_id = f.flight_id
-          JOIN passengers p ON t.passenger_id = p.passenger_id
-          WHERE t.created_at BETWEEN ? AND ?
-          ORDER BY t.created_at DESC 
-          LIMIT 10`,
-          [dateRange.start, dateRange.end]
-        ),
+      // Execute status distribution query
+      const [statusData] = await conn.query(
+        `
+        SELECT 'flight' AS type, status, COUNT(*) AS count 
+        FROM flights 
+        WHERE departure_time BETWEEN ? AND ?
+        GROUP BY status
+        UNION ALL
+        SELECT 'ticket' AS type, status, COUNT(*) AS count 
+        FROM tickets 
+        WHERE created_at BETWEEN ? AND ?
+        GROUP BY status
+      `,
+        [dateRange.start, dateRange.end, dateRange.start, dateRange.end]
+      )
 
-        // Revenue trends - filtered by period
-        pool.query(
-          `SELECT 
-            DATE(p.created_at) AS date, 
-            SUM(p.amount) AS revenue,
-            COUNT(DISTINCT t.ticket_id) AS bookings_count
-          FROM payments p
-          JOIN tickets t ON p.ticket_id = t.ticket_id
-          WHERE p.status = 'Success'
-            AND p.created_at BETWEEN ? AND ?
-          GROUP BY DATE(p.created_at)
-          ORDER BY date ASC`,
-          [dateRange.start, dateRange.end]
-        ),
+      // Execute trend analysis query
+      const [trendData] = await conn.query(
+        `
+        SELECT 
+          DATE(p.created_at) AS date,
+          SUM(p.amount) AS revenue,
+          COUNT(DISTINCT t.ticket_id) AS bookings,
+          GROUP_CONCAT(DISTINCT CONCAT(dep.code, '→', arr.code)) AS routes
+        FROM payments p
+        INNER JOIN tickets t ON p.ticket_id = t.ticket_id
+        INNER JOIN flights f ON t.flight_id = f.flight_id
+        INNER JOIN airports dep ON f.departure_airport = dep.airport_id
+        INNER JOIN airports arr ON f.arrival_airport = arr.airport_id
+        WHERE p.status = 'Success'
+          AND p.created_at BETWEEN ? AND ?
+        GROUP BY DATE(p.created_at)
+        ORDER BY date DESC
+        LIMIT 14
+      `,
+        [dateRange.start, dateRange.end]
+      )
 
-        // Popular routes - filtered by period
-        pool.query(
-          `SELECT 
-            dep.city AS departure, 
-            arr.city AS arrival, 
-            COUNT(*) AS bookings,
-            SUM(t.price) AS total_revenue
-          FROM flights f
-          JOIN tickets t ON f.flight_id = t.flight_id
-          JOIN airports dep ON f.departure_airport = dep.airport_id
-          JOIN airports arr ON f.arrival_airport = arr.airport_id
-          WHERE t.status = 'Confirmed'
-            AND f.departure_time BETWEEN ? AND ?
-          GROUP BY departure, arrival
-          ORDER BY bookings DESC 
-          LIMIT 10`,
-          [dateRange.start, dateRange.end]
-        ),
+      // Execute user activity query
+      const [userData] = await conn.query(
+        `
+        SELECT 
+          u.user_id,
+          u.username,
+          COUNT(t.ticket_id) AS bookings,
+          SUM(t.price) AS total_spent,
+          MAX(t.created_at) AS last_activity
+        FROM users u
+        LEFT JOIN passengers p ON u.user_id = p.user_id
+        LEFT JOIN tickets t ON p.passenger_id = t.passenger_id
+        WHERE t.created_at BETWEEN ? AND ?
+        GROUP BY u.user_id
+        ORDER BY total_spent DESC
+        LIMIT 10
+      `,
+        [dateRange.start, dateRange.end]
+      )
 
-        // User signups - filtered by period
-        pool.query(
-          `SELECT 
-            DATE(created_at) AS signup_date,
-            COUNT(*) AS user_count,
-            SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) AS admin_count
-          FROM users
-          WHERE created_at BETWEEN ? AND ?
-          GROUP BY DATE(created_at)
-          ORDER BY signup_date ASC`,
-          [dateRange.start, dateRange.end]
-        ),
+      // Process raw data into final format
+      const processedData = {
+        overview: {
+          airports: mainStats[0].airports,
+          airlines: mainStats[0].airlines,
+          users: mainStats[0].users,
+          flights: mainStats[0].flights,
+          tickets: mainStats[0].tickets,
+          revenue: mainStats[0].revenue,
+          refunds: mainStats[0].refunds,
+        },
+        statuses: {
+          flights: statusData.filter((item) => item.type === 'flight'),
+          tickets: statusData.filter((item) => item.type === 'ticket'),
+        },
+        trends: {
+          timeline: trendData.map((t) => ({
+            date: t.date,
+            revenue: t.revenue,
+            bookings: t.bookings,
+            routes: t.routes.split(','),
+          })),
+          topUsers: userData.map((u) => ({
+            id: u.user_id,
+            name: u.username,
+            bookings: u.bookings,
+            total: u.total_spent,
+            lastActive: u.last_activity,
+          })),
+        },
+      }
 
-        // User activity - filtered by period
-        pool.query(
-          `SELECT 
-            u.user_id, 
-            u.username, 
-            u.email,
-            COUNT(t.ticket_id) AS bookings,
-            SUM(t.price) AS total_spent,
-            MAX(t.created_at) AS last_booking_date
-          FROM users u
-          LEFT JOIN passengers p ON u.user_id = p.user_id
-          LEFT JOIN tickets t ON p.passenger_id = t.passenger_id
-          WHERE t.status = 'Confirmed'
-            AND t.created_at BETWEEN ? AND ?
-          GROUP BY u.user_id
-          ORDER BY total_spent DESC 
-          LIMIT 10`,
-          [dateRange.start, dateRange.end]
-        ),
+      // Cache processed data
+      await client.set(cacheKey, JSON.stringify(processedData), 'EX', 55)
 
-        // Airline stats - filtered by period
-        pool.query(
-          `SELECT 
-            a.airline_id,
-            a.name, 
-            COUNT(f.flight_id) AS total_flights,
-            AVG(r.rating) AS avg_rating,
-            SUM(CASE WHEN f.status = 'Arrived' THEN 1 ELSE 0 END) AS completed_flights,
-            SUM(CASE WHEN f.status = 'Canceled' THEN 1 ELSE 0 END) AS canceled_flights
-          FROM airlines a
-          LEFT JOIN flights f ON a.airline_id = f.airline_id
-          LEFT JOIN reviews r ON f.flight_id = r.flight_id
-          WHERE f.departure_time BETWEEN ? AND ?
-          GROUP BY a.airline_id
-          ORDER BY total_flights DESC 
-          LIMIT 10`,
-          [dateRange.start, dateRange.end]
-        ),
+      logger.info(`Dashboard data generated for period: ${period}`)
 
-        // Airport stats - filtered by period
-        pool.query(
-          `SELECT 
-            ap.airport_id,
-            ap.name, 
-            ap.city,
-            ap.country,
-            COUNT(f.flight_id) AS total_flights,
-            SUM(CASE WHEN f.status = 'Arrived' THEN 1 ELSE 0 END) AS arrivals,
-            SUM(CASE WHEN f.status = 'Departed' THEN 1 ELSE 0 END) AS departures
-          FROM airports ap
-          LEFT JOIN flights f ON ap.airport_id = f.departure_airport
-          WHERE f.departure_time BETWEEN ? AND ?
-          GROUP BY ap.airport_id
-          ORDER BY total_flights DESC 
-          LIMIT 10`,
-          [dateRange.start, dateRange.end]
-        ),
-
-        // Active users (not time-based)
-        pool.query(
-          `SELECT COUNT(*) AS active_users FROM users WHERE is_active = TRUE`
-        ),
-
-        // Ticket status stats - filtered by period
-        pool.query(
-          `SELECT 
-            status,
-            COUNT(*) AS count,
-            SUM(price) AS total_value,
-            AVG(price) AS avg_price
-          FROM tickets
-          WHERE created_at BETWEEN ? AND ?
-          GROUP BY status`,
-          [dateRange.start, dateRange.end]
-        ),
-
-        // Review stats - filtered by period
-        pool.query(
-          `SELECT 
-            AVG(rating) AS avg_rating,
-            COUNT(*) AS total_reviews,
-            (SELECT COUNT(DISTINCT flight_id) FROM reviews WHERE created_at BETWEEN ? AND ?) AS flights_reviewed,
-            (SELECT COUNT(DISTINCT user_id) FROM reviews WHERE created_at BETWEEN ? AND ?) AS unique_reviewers
-          FROM reviews
-          WHERE created_at BETWEEN ? AND ?`,
-          [
-            dateRange.start,
-            dateRange.end,
-            dateRange.start,
-            dateRange.end,
-            dateRange.start,
-            dateRange.end,
-          ]
-        ),
-
-        // Flight stats - filtered by period
-        pool.query(
-          `SELECT 
-            COUNT(*) AS total_flights,
-            SUM(CASE WHEN status = 'Arrived' THEN 1 ELSE 0 END) AS flights_arrived,
-            SUM(CASE WHEN status = 'Departed' THEN 1 ELSE 0 END) AS flights_departed,
-            SUM(CASE WHEN status = 'Scheduled' THEN 1 ELSE 0 END) AS flights_scheduled,
-            SUM(CASE WHEN status = 'Canceled' THEN 1 ELSE 0 END) AS flights_canceled,
-            SUM(CASE WHEN status = 'Delayed' THEN 1 ELSE 0 END) AS flights_delayed,
-            AVG(TIMESTAMPDIFF(MINUTE, departure_time, arrival_time)) AS avg_flight_duration_minutes,
-            MIN(departure_time) AS earliest_flight,
-            MAX(arrival_time) AS latest_flight
-          FROM flights
-          WHERE departure_time BETWEEN ? AND ?`,
-          [dateRange.start, dateRange.end]
-        ),
-
-        // Detailed airport stats - filtered by period
-        pool.query(
-          `SELECT 
-            COUNT(DISTINCT airport_id) AS total_airports,
-            COUNT(DISTINCT country) AS countries_served,
-            COUNT(DISTINCT city) AS cities_served,
-            (SELECT name FROM airports 
-             WHERE airport_id = (
-               SELECT departure_airport 
-               FROM flights 
-               WHERE departure_time BETWEEN ? AND ?
-               GROUP BY departure_airport 
-               ORDER BY COUNT(*) DESC 
-               LIMIT 1
-             )) AS busiest_airport,
-            (SELECT COUNT(*) FROM flights 
-             WHERE departure_airport = (
-               SELECT departure_airport 
-               FROM flights 
-               WHERE departure_time BETWEEN ? AND ?
-               GROUP BY departure_airport 
-               ORDER BY COUNT(*) DESC 
-               LIMIT 1
-             )) AS busiest_airport_flights,
-            (SELECT name FROM airports
-             WHERE airport_id = (
-               SELECT arrival_airport
-               FROM flights
-               WHERE departure_time BETWEEN ? AND ?
-               GROUP BY arrival_airport
-               ORDER BY COUNT(*) DESC
-               LIMIT 1
-             )) AS most_popular_destination
-          FROM airports`,
-          [
-            dateRange.start,
-            dateRange.end,
-            dateRange.start,
-            dateRange.end,
-            dateRange.start,
-            dateRange.end,
-          ]
-        ),
-
-        // Revenue by flight - filtered by period
-        pool.query(
-          `SELECT 
-            f.flight_id,
-            f.flight_number,
-            a.name AS airline_name,
-            dep.name AS departure_airport,
-            arr.name AS arrival_airport,
-            COUNT(t.ticket_id) AS tickets_sold,
-            SUM(t.price) AS total_revenue,
-            AVG(t.price) AS avg_ticket_price,
-            AVG(r.rating) AS avg_rating
-          FROM flights f
-          JOIN airlines a ON f.airline_id = a.airline_id
-          JOIN airports dep ON f.departure_airport = dep.airport_id
-          JOIN airports arr ON f.arrival_airport = arr.airport_id
-          JOIN tickets t ON f.flight_id = t.flight_id
-          LEFT JOIN reviews r ON f.flight_id = r.flight_id
-          WHERE t.status = 'Confirmed'
-            AND f.departure_time BETWEEN ? AND ?
-          GROUP BY f.flight_id
-          ORDER BY total_revenue DESC
-          LIMIT 10`,
-          [dateRange.start, dateRange.end]
-        ),
-
-        // Revenue by airport - filtered by period
-        pool.query(
-          `SELECT 
-            ap.airport_id,
-            ap.name AS airport_name,
-            ap.city,
-            ap.country,
-            COUNT(DISTINCT f.flight_id) AS total_flights,
-            COUNT(t.ticket_id) AS tickets_sold,
-            SUM(t.price) AS total_revenue,
-            AVG(t.price) AS avg_ticket_price
-          FROM airports ap
-          LEFT JOIN flights f ON ap.airport_id = f.departure_airport
-          LEFT JOIN tickets t ON f.flight_id = t.flight_id AND t.status = 'Confirmed'
-          WHERE f.departure_time BETWEEN ? AND ?
-          GROUP BY ap.airport_id
-          ORDER BY total_revenue DESC
-          LIMIT 10`,
-          [dateRange.start, dateRange.end]
-        ),
-
-        // Passenger stats - filtered by period
-        pool.query(
-          `SELECT 
-            COUNT(DISTINCT p.passenger_id) AS total_passengers,
-            COUNT(DISTINCT p.user_id) AS registered_passengers,
-            COUNT(DISTINCT t.ticket_id) AS tickets_issued,
-            AVG(t.price) AS avg_ticket_price,
-            MIN(p.date_of_birth) AS oldest_passenger_dob,
-            MAX(p.date_of_birth) AS youngest_passenger_dob
-          FROM passengers p
-          LEFT JOIN tickets t ON p.passenger_id = t.passenger_id
-          LEFT JOIN flights f ON t.flight_id = f.flight_id
-          WHERE t.status = 'Confirmed'
-            AND f.departure_time BETWEEN ? AND ?`,
-          [dateRange.start, dateRange.end]
-        ),
-
-        // Flight status stats - filtered by period
-        pool.query(
-          `SELECT 
-            status,
-            COUNT(*) AS count,
-            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM flights WHERE departure_time BETWEEN ? AND ?), 2) AS percentage
-          FROM flights
-          WHERE departure_time BETWEEN ? AND ?
-          GROUP BY status`,
-          [dateRange.start, dateRange.end, dateRange.start, dateRange.end]
-        ),
-
-        // Top flights - filtered by period
-        pool.query(
-          `SELECT 
-            f.flight_id,
-            f.flight_number,
-            a.name AS airline_name,
-            dep.name AS departure_airport,
-            arr.name AS arrival_airport,
-            COUNT(t.ticket_id) AS passengers,
-            SUM(t.price) AS revenue,
-            AVG(r.rating) AS avg_rating,
-            COUNT(r.review_id) AS review_count
-          FROM flights f
-          JOIN airlines a ON f.airline_id = a.airline_id
-          JOIN airports dep ON f.departure_airport = dep.airport_id
-          JOIN airports arr ON f.arrival_airport = arr.airport_id
-          LEFT JOIN tickets t ON f.flight_id = t.flight_id AND t.status = 'Confirmed'
-          LEFT JOIN reviews r ON f.flight_id = r.flight_id
-          WHERE f.departure_time BETWEEN ? AND ?
-          GROUP BY f.flight_id
-          ORDER BY revenue DESC
-          LIMIT 10`,
-          [dateRange.start, dateRange.end]
-        ),
-
-        // Top airports - filtered by period
-        pool.query(
-          `SELECT 
-            ap.airport_id,
-            ap.name,
-            ap.city,
-            ap.country,
-            COUNT(DISTINCT f.flight_id) AS total_flights,
-            COUNT(DISTINCT CASE WHEN f.status = 'Arrived' THEN f.flight_id END) AS arrivals,
-            COUNT(DISTINCT CASE WHEN f.status = 'Departed' THEN f.flight_id END) AS departures,
-            COUNT(t.ticket_id) AS passengers_served,
-            SUM(t.price) AS total_revenue
-          FROM airports ap
-          LEFT JOIN flights f ON ap.airport_id IN (f.departure_airport, f.arrival_airport)
-          LEFT JOIN tickets t ON f.flight_id = t.flight_id AND t.status = 'Confirmed'
-          WHERE f.departure_time BETWEEN ? AND ?
-          GROUP BY ap.airport_id
-          ORDER BY total_revenue DESC
-          LIMIT 10`,
-          [dateRange.start, dateRange.end]
-        ),
-
-        // Booking trends by hour of day - filtered by period
-        pool.query(
-          `SELECT 
-            HOUR(t.created_at) AS hour_of_day,
-            COUNT(*) AS bookings_count,
-            SUM(t.price) AS total_revenue
-          FROM tickets t
-          WHERE t.created_at BETWEEN ? AND ?
-          GROUP BY HOUR(t.created_at)
-          ORDER BY hour_of_day ASC`,
-          [dateRange.start, dateRange.end]
-        ),
-
-        // Revenue by class - filtered by period
-        pool.query(
-          `SELECT 
-            s.class,
-            COUNT(*) AS tickets_sold,
-            SUM(t.price) AS total_revenue,
-            AVG(t.price) AS avg_price
-          FROM tickets t
-          JOIN seats s ON t.seat_id = s.seat_id
-          WHERE t.status = 'Confirmed'
-            AND t.created_at BETWEEN ? AND ?
-          GROUP BY s.class
-          ORDER BY total_revenue DESC`,
-          [dateRange.start, dateRange.end]
-        ),
-
-        // Refund trends - filtered by period
-        pool.query(
-          `SELECT 
-            DATE(r.created_at) AS refund_date,
-            COUNT(*) AS refund_count,
-            SUM(r.amount) AS total_refunded,
-            AVG(r.penalty) AS avg_penalty
-          FROM refunds r
-          WHERE r.created_at BETWEEN ? AND ?
-          GROUP BY DATE(r.created_at)
-          ORDER BY refund_date ASC`,
-          [dateRange.start, dateRange.end]
-        ),
-
-        // User demographics - filtered by period
-        pool.query(
-          `SELECT 
-            CASE
-            WHEN TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) BETWEEN 0 AND 17 THEN '0-17'
-              WHEN TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) BETWEEN 18 AND 24 THEN '18-24'
-              WHEN TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) BETWEEN 25 AND 34 THEN '25-34'
-              WHEN TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) BETWEEN 35 AND 44 THEN '35-44'
-              WHEN TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) BETWEEN 45 AND 54 THEN '45-54'
-              WHEN TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) >= 55 THEN '55+'
-              ELSE 'Unknown'
-            END AS age_group,
-            COUNT(DISTINCT p.passenger_id) AS passenger_count,
-            SUM(t.price) AS total_spending
-          FROM passengers p
-          LEFT JOIN tickets t ON p.passenger_id = t.passenger_id
-          WHERE t.status = 'Confirmed'
-            AND t.created_at BETWEEN ? AND ?
-          GROUP BY age_group
-          ORDER BY age_group`,
-          [dateRange.start, dateRange.end]
-        ),
-
-        // Flight occupancy rates - filtered by period
-        pool.query(
-          `SELECT 
-            f.flight_id,
-            f.flight_number,
-            a.name AS airline_name,
-            COUNT(s.seat_id) AS total_seats,
-            SUM(CASE WHEN s.is_booked = TRUE THEN 1 ELSE 0 END) AS booked_seats,
-            ROUND(SUM(CASE WHEN s.is_booked = TRUE THEN 1 ELSE 0 END) * 100.0 / COUNT(s.seat_id), 2) AS occupancy_rate
-          FROM flights f
-          JOIN airlines a ON f.airline_id = a.airline_id
-          LEFT JOIN seats s ON f.flight_id = s.flight_id
-          WHERE f.departure_time BETWEEN ? AND ?
-          GROUP BY f.flight_id
-          ORDER BY occupancy_rate DESC
-          LIMIT 10`,
-          [dateRange.start, dateRange.end]
-        ),
-      ])
-
-      // Format the combined response
-      return res.json({
+      return res.status(200).json({
         success: true,
-        period,
-        dateRange: {
-          start: dateRange.start,
-          end: dateRange.end,
-        },
-        stats: {
-          // Basic stats
-          totalAirports: totals[0].total_airports,
-          totalAirlines: totals[0].total_airlines,
-          totalUsers: totals[0].total_users,
-          totalFlights: totals[0].total_flights,
-          totalTicketsSold: totals[0].total_tickets_sold,
-          totalRevenue: totals[0].total_revenue,
-          totalRefunds: totals[0].total_refunds || 0,
-          countriesServed: totals[0].countries_served,
-          activeUsers: activeUsers.active_users,
-          avgRating: reviewStats[0][0]?.avg_rating || 0,
-          totalReviews: reviewStats[0][0]?.total_reviews || 0,
-          flightsReviewed: reviewStats[0][0]?.flights_reviewed || 0,
-          uniqueReviewers: reviewStats[0][0]?.unique_reviewers || 0,
-
-          // Enhanced stats
-          flights: flightStats[0],
-          airports: airportDetailedStats[0],
-          passengers: passengerStats[0],
-          statusDistribution: flightStatusStats,
-          revenueByFlight,
-          revenueByAirport,
-          topFlights,
-          topAirports,
-          bookingTrends,
-          revenueByClass,
-          refundTrends,
-          userDemographics,
-          flightOccupancy,
-        },
-        // Data arrays for charts
-        statusDistribution,
-        recentBookings,
-        revenueTrends,
-        popularRoutes,
-        userSignups,
-        userActivity,
-        airlineStats,
-        airportStats,
-        ticketStatusStats,
-        reviewStats: reviewStats[0][0],
+        source: 'database',
+        data: processedData,
       })
     } catch (error) {
-      console.error(`Combined Dashboard Error: ${error.message}`)
+      logger.error(`Dashboard Error: ${error.message}`)
+      console.error(error.stack)
       return res.status(500).json({
         success: false,
         error: {
           code: 'DASHBOARD_ERROR',
-          message: 'Failed to load dashboard data',
-          details: error.message,
+          message: 'Failed to generate dashboard data',
+          details:
+            process.env.NODE_ENV === 'development' ? error.message : null,
         },
       })
+    } finally {
+      if (conn) {
+        await conn.release()
+        logger.debug('Connection released back to pool')
+      }
+    }
+  }
+
+  /**
+   * Calculates date range based on period parameter
+   * @param {string} period - day/week/month/year
+   * @returns {Object} {start, end} ISO date strings
+   */
+  calculateDateRange(period) {
+    const now = new Date()
+    let start, end
+
+    switch (period.toLowerCase()) {
+      case 'day':
+        start = new Date(now)
+        start.setHours(0, 0, 0, 0)
+        end = new Date(now)
+        end.setHours(23, 59, 59, 999)
+        break
+
+      case 'week':
+        start = new Date(now)
+        start.setDate(now.getDate() - now.getDay())
+        start.setHours(0, 0, 0, 0)
+        end = new Date(start)
+        end.setDate(start.getDate() + 6)
+        end.setHours(23, 59, 59, 999)
+        break
+
+      case 'month':
+        start = new Date(now.getFullYear(), now.getMonth(), 1)
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        end.setHours(23, 59, 59, 999)
+        break
+
+      case 'year':
+        start = new Date(now.getFullYear(), 0, 1)
+        end = new Date(now.getFullYear(), 11, 31)
+        end.setHours(23, 59, 59, 999)
+        break
+
+      default:
+        start = new Date(0)
+        end = new Date()
+        break
+    }
+
+    return {
+      start: start.toISOString().slice(0, 19).replace('T', ' '),
+      end: end.toISOString().slice(0, 19).replace('T', ' '),
     }
   }
 
